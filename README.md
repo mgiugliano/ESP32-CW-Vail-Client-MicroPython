@@ -4,7 +4,7 @@
 ![Platform: ESP32](https://img.shields.io/badge/Platform-ESP32-blue)
 ![Language: MicroPython](https://img.shields.io/badge/Language-MicroPython-green)
 
-![Vail Client Prototype](doc/vail-client-v0.jpg)
+[![Vail Client Prototype](https://img.youtube.com/vi/6pTK0vWpM8Q/0.jpg)](https://www.youtube.com/watch?v=6pTK0vWpM8Q)
 
 ## 📡 Overview
 
