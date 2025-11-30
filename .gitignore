@@ -1,3 +1,10 @@
+private.py
+private.h
+
+old/
+older/
+stuff/
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[codz]
