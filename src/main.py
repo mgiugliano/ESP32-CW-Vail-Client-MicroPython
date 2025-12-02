@@ -9,6 +9,7 @@
 # License: MIT
 
 ## main.py
+import machine
 import network
 import socket
 import ssl
@@ -26,6 +27,9 @@ import hardware
 import utils
 import keyer
 
+# Drop to 80MHz to save power (Proven safe)
+machine.freq(80000000)
+
 # --- GLOBAL SHARED STATE ---
 tx_queue = utils.AsyncQueue()
 recently_sent = []
@@ -33,11 +37,18 @@ connected_clients = 0
 
 async def setup_network():
     try:
-        esp32.brownout_setup();
+        esp32.brownout_setup()
     except: pass
     
     wlan = network.WLAN(network.STA_IF)
     wlan.active(True)
+
+    # PM_POWERSAVE (Modem Sleep)
+    try:
+        wlan.config(pm=wlan.PM_POWERSAVE)
+    except AttributeError:
+        pass
+
     if not wlan.isconnected():
         print(f'Connecting to {config.SSID}...')
         wlan.connect(config.SSID, config.PASSWORD)
@@ -47,10 +58,10 @@ async def setup_network():
         print('')
     print('WiFi Connected:', wlan.ifconfig())
     
-    # NTP
+    # NTP - Run ONCE at boot
     try:
-        ntptime.settime();
-        print("NTP Synced");
+        ntptime.settime()
+        print("NTP Synced")
     except: pass
 
 async def setup_socket():
@@ -76,8 +87,7 @@ async def setup_socket():
     )
     s.write(req.encode())
     
-    # We can't use await s.read() easily here without Async wrapper yet, 
-    # so we do a quick blocking read for handshake
+    # Blocking read for handshake
     s.setblocking(True)
     while True:
         line = s.readline()
@@ -91,7 +101,6 @@ async def setup_socket():
 async def task_sender(writer):
     while True:
         packet = await tx_queue.get()
-        # Framing
         length = len(packet)
         header = bytearray([0x82, 0x80 | length])
         mask = os.urandom(4)
@@ -99,10 +108,14 @@ async def task_sender(writer):
         payload = bytearray(length)
         for i in range(length): payload[i] = packet[i] ^ mask[i % 4]
         
-        writer.write(header)
-        writer.write(payload)
-        await writer.drain()
-        print(f"[TX] {length}b")
+        try:
+            writer.write(header)
+            writer.write(payload)
+            await writer.drain()
+            print(f"[TX] {length}b")
+        except Exception as e:
+            print(f"TX Error: {e}")
+            await asyncio.sleep(1)
 
 async def task_receiver(reader, hw):
     global connected_clients
@@ -143,18 +156,19 @@ async def task_receiver(reader, hw):
                             break
                 if is_echo: continue
 
-                # Clock Sync
+                # Clock Sync - CALCULATED ONCE ONLY
                 if clock_offset is None:
                     clock_offset = arrival - ts
                     print(f"Sync Offset: {clock_offset}")
-                    continue
+                    # We continue here to play the first packet immediately
                 
-                # Jitter Buffer
+                # Standard Jitter Buffer Calculation
                 target = ts + clock_offset + config.RX_DELAY_MS
                 wait = time.ticks_diff(target, arrival)
                 
                 if count == 0:
-                    print(f"[RX] Heartbeat | Clients: {clients}")
+                    # Heartbeat
+                    pass
                 else:
                     d_list = struct.unpack(f">{count}H", durations)
                     print(f"[RX] Seq: {d_list} | Wait: {wait}ms")
@@ -185,7 +199,7 @@ async def task_led(hw):
 
 async def main():
     time.sleep(2) # USB Safety
-    print("--- STARTING VAIL CLIENT (MODULAR) ---")
+    print("--- STARTING VAIL CLIENT (STABLE) ---")
     
     hw = hardware.VailHardware()
     
@@ -193,25 +207,31 @@ async def main():
     d, D = hw.get_paddles()
     if d:
         print("BOOT: Dit Held -> Straight Key")
-        # We pass the specific pin object to the straight key task
         key_task = keyer.task_straight(hw, tx_queue, recently_sent, hw.dit_key)
     elif D:
         print("BOOT: Dah Held -> Straight Key")
         key_task = keyer.task_straight(hw, tx_queue, recently_sent, hw.dah_key)
     else:
         print("BOOT: Normal -> Iambic Keyer")
-        # Enable IRQ only for Iambic
         hw.enable_irq()
         key_task = keyer.task_iambic(hw, tx_queue, recently_sent)
 
-    await setup_network()
+    # Basic connection loop
+    while True:
+        try:
+            await setup_network()
+            sock = await setup_socket()
+            break 
+        except Exception as e:
+            print(f"Connection Failed: {e}. Retrying...")
+            await asyncio.sleep(5)
     
-    sock = await setup_socket()
     reader = asyncio.StreamReader(sock)
     writer = asyncio.StreamWriter(sock, {})
     
     hw.play_startup_tone()
     
+    # Restore original task list (No maintenance task)
     await asyncio.gather(
         task_receiver(reader, hw),
         task_sender(writer),
@@ -223,4 +243,3 @@ try:
     asyncio.run(main())
 except KeyboardInterrupt:
     print("Stopped.")
-
