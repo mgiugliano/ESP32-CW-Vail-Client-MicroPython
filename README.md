@@ -49,7 +49,7 @@ PlatformIO).
 
 ## ✨ Features
 
-* **Standalone:** Works with [Vail](https://vail.woozle.org/) via WiFi (no PC/phone/tablet required).
+* **Standalone:** Works with the (earlier/first) [Vail server](https://vail.woozle.org/) via WiFi (no PC/phone/tablet required). Connect your Morse key and plug it into a power supply or power bank and your are connected online.
 * **Dual Mode:** Supports both **Straight Key** and **Iambic Paddle (Mode B)** (default at boot).
 * **Auto-Detect:** Hold your key down at boot to automatically switch to Straight Key mode.
 * **Audio:** Local sidetone (600Hz) and distinct received pitch (700Hz).
@@ -130,11 +130,11 @@ The **Vail Client** can't clearly compete with that project as it is a specializ
 * **Morserino-32:** **Moderate Cost (~$60 - $90 USD + Shipping).**
     * It is sold as a kit (requiring assembly) or fully assembled. The cost reflects the custom PCB, display, battery management, and enclosure components.
 
-#### 2. Advantages of Vail Client
+#### 2. Advantages of this hardware, stand-alone, client
 * **"Always-On" Appliance Philosophy:**
-    * Your project is designed to sit on a desk, connected to WiFi, waiting for traffic 24/7. It behaves like a real radio receiver squelched until someone transmits. The Morserino is designed more as a handheld gadget you turn on for a specific practice session.
+    * This project is designed to sit on a desk, connected to WiFi, waiting for traffic 24/7. It behaves like a real radio receiver squelched until someone transmits. The Morserino is designed more as a handheld gadget you turn on for a specific practice session.
 * **Native Vail Protocol Support:**
-    * Your client speaks the `binary.vail.woozle.org` protocol natively. While Morserino supports WiFi (via "QSO Bot" and other modes), connecting it specifically to the Vail server often requires specific firmware forks or bridges.
+    * This client speaks the `binary.vail.woozle.org` protocol natively. While Morserino supports WiFi (via "QSO Bot" and other modes), connecting it specifically to the Vail server often requires specific firmware forks or bridges.
 * **Simplicity of Code:**
     * The entire logic is contained in rather basic MicroPython script. This makes it incredibly easy for a beginner to understand, modify, or "hack" without needing to set up a complex PlatformIO C++ environment.
 * **Use of Real Keys:**
